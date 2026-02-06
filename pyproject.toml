@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=77.0.3", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fakewindowsize"
+version = "0.2"
+description = "Python module to generate realistic browsers window size."
+readme = "README.md"
+
+license = "MIT"
+license-files = ["LICENSE"]
+
+authors = [
+    {name = "Carlos A. Planchón"}
+]
+keywords = ["fake", "window", "size"]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14"
+]
+requires-python = ">=3.8"
+dependencies = [
+    "beautifulsoup4",
+    "requests",
+]
+
+[project.urls]
+Homepage = "https://github.com/fakewindowsize/fakewindowsize"
+
+[tool.setuptools]
+packages = ["fakewindowsize"]

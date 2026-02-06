@@ -1,10 +1,10 @@
 # fakewindowsize
-*Python3 module to generate realistic browsers window size.*
+*Python module to generate realistic browsers window size.*
 
 ## Installation
 ### Install with pip
-```
-python setup.py install --user
+```bash
+uv add fakewindowsize
 ```
 
 ## Usage
