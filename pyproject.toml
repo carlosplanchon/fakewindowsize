@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fakewindowsize"
-version = "0.5"
+version = "0.6"
 description = "Python module to generate realistic browsers window size."
 readme = "README.md"
 
