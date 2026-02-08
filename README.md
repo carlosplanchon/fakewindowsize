@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="https://raw.githubusercontent.com/carlosplanchon/fakewindowsize/refs/heads/master/assets/banner.jpeg" alt="fakewindowsize banner">
+</div>
+
 # fakewindowsize
 *Python module to generate realistic browsers window size.*
 
