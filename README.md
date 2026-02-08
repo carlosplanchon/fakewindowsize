@@ -7,6 +7,9 @@
 
 Generate random but statistically accurate browser window sizes based on real-world usage data from [StatCounter](https://gs.statcounter.com/). Perfect for web scraping, testing, and generating realistic browser fingerprints.
 
+**DeepWiki** [https://deepwiki.com/carlosplanchon/fakewindowsize](https://deepwiki.com/carlosplanchon/fakewindowsize).
+
+
 ## Features
 
 - 📊 **Real-world data**: Uses current browser resolution statistics from StatCounter (2025 data)
@@ -62,3 +65,5 @@ data = f.scrape_window_size_dict(request_proxies=proxies)
 ## Data source
 
 Screen resolution data is sourced from [StatCounter Global Stats](https://gs.statcounter.com/screen-resolution-stats), which tracks browser usage across desktop, tablet, and mobile devices worldwide.
+
+## Documentation
