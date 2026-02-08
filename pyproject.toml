@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fakewindowsize"
-version = "0.3"
+version = "0.4"
 description = "Python module to generate realistic browsers window size."
 readme = "README.md"
 
@@ -27,12 +27,30 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "beautifulsoup4",
     "requests",
 ]
 
 [project.urls]
 Homepage = "https://github.com/fakewindowsize/fakewindowsize"
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "responses>=0.24.0",
+]
+
 [tool.setuptools]
 packages = ["fakewindowsize"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--verbose",
+    "--cov=fakewindowsize",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+]

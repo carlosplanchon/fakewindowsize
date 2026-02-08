@@ -1,47 +1,46 @@
 #!/usr/bin/env python3
 
-from bs4 import BeautifulSoup
+from csv import DictReader
+from io import StringIO
 from requests import get
 
 from json import dump, load
 from pathlib import Path
-from re import compile as comp
 from secrets import randbelow
 
 
 class FakeWindowSize:
     def __init__(self):
         """Browser display stats scraper."""
-        self.url = "https://www.w3schools.com/browsers/browsers_display.asp"
-        self.resolution_pattern = comp(r"^\d+x\d+$")
-        self.percentage_pattern = comp(r"^\d{1,2}(\.?\d+)?%$")
+        self.url = "https://gs.statcounter.com/chart.php?device_hidden=desktop%2Btablet%2Bmobile&statType_hidden=resolution&region_hidden=ww&multi-device=true&csv=1&granularity=yearly&fromYear=2025&toYear=2025"
         self.default_json_fp: Path = Path().home() / ".fakescreensize.json"
         self.scraped_dict = None
 
     def scrape_window_size_dict(self, request_proxies=None):
-        """Scrape browser display stats from w3schools"""
+        """Scrape browser display stats from StatCounter"""
         resp = get(self.url, proxies=request_proxies)
-        soup = BeautifulSoup(resp.text, "lxml")
-        resolution_table = soup.find(
-                "table",
-                {"class": "w3-table-all notranslate"}
-            )
-        rows = resolution_table.findAll("tr")
-        scraped_dict = {}
-        if len(rows) > 1:
-            cells_row_tags = rows[0].findAll("th")
-            cells_row_percentage = rows[1].findAll("td")
-            for i in range(len(cells_row_tags)):
-                if self.resolution_pattern.match(cells_row_tags[i].text) and \
-                        self.percentage_pattern.match(
-                            cells_row_percentage[i].text):
-                    scraped_dict[cells_row_tags[i].text] = float(
-                        cells_row_percentage[i].text.rstrip("%"))
+        csv_data = StringIO(resp.text)
+        reader = DictReader(csv_data)
 
-            cumulative_percentage = 0
-            for element in scraped_dict:
-                cumulative_percentage += scraped_dict[element]
-                scraped_dict[element] = cumulative_percentage
+        scraped_dict = {}
+        for row in reader:
+            resolution = row.get('Screen Resolution', '').strip()
+            percentage_str = row.get('Market Share Perc. (2025)', '').strip()
+
+            # Skip "Other" and invalid entries
+            if resolution and resolution.lower() != 'other' and 'x' in resolution:
+                try:
+                    percentage = float(percentage_str)
+                    scraped_dict[resolution] = percentage
+                except ValueError:
+                    continue
+
+        # Convert to cumulative percentages for weighted random selection
+        cumulative_percentage = 0
+        for element in scraped_dict:
+            cumulative_percentage += scraped_dict[element]
+            scraped_dict[element] = cumulative_percentage
+
         return scraped_dict
 
     def default_width_x_heigth(self):
@@ -50,7 +49,8 @@ class FakeWindowSize:
 
     def choice_random_window_size(self, scraped_dict):
         """Get a random window size based on browsers data."""
-        num = randbelow(round(max(scraped_dict.values())))
+        max_percentage = max(scraped_dict.values())
+        num = randbelow(int(max_percentage) + 1)
         width, heigth = self.default_width_x_heigth()
         keys = list(scraped_dict)
         i = 0
@@ -87,6 +87,9 @@ class FakeWindowSize:
             try:
                 self.scraped_dict = self.scrape_window_size_dict()
             except Exception:
+                return None
+            # Check if scraping returned empty data
+            if not self.scraped_dict:
                 return None
             self.save_scraped_dict(self.scraped_dict)
         return self.choice_random_window_size(self.scraped_dict)
