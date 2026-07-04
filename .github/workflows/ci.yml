@@ -22,7 +22,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
-        # Cross-OS smoke on the newest version — guards the filesystem/cache
+        # Cross-OS smoke on the newest version: guards the filesystem/cache
         # code (atomic os.replace, temp files, path slugs) on Windows/macOS.
         include:
           - os: windows-latest

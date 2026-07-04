@@ -28,7 +28,7 @@ jobs:
           PKG="$(uv version --short)"
           echo "tag=$TAG package=$PKG"
           if [ "$TAG" != "$PKG" ]; then
-            echo "::error::Tag v$TAG does not match pyproject version $PKG — bump the version or fix the tag."
+            echo "::error::Tag v$TAG does not match pyproject version $PKG. Bump the version or fix the tag."
             exit 1
           fi
 
@@ -51,7 +51,7 @@ jobs:
     name: publish to PyPI
     needs: build
     runs-on: ubuntu-latest
-    # Trusted Publishing scope — the PyPI publisher must reference this
+    # Trusted Publishing scope: the PyPI publisher must reference this
     # environment name. No API tokens/secrets required.
     environment:
       name: pypi

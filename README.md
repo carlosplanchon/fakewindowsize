@@ -15,7 +15,7 @@
 Generate random but statistically accurate **screen resolutions** based on real-world usage data from [StatCounter](https://gs.statcounter.com/). Perfect for web scraping, testing, and generating realistic browser fingerprints.
 
 > **Note on terminology:** the data source is StatCounter's *screen resolution*
-> stats — i.e. `screen.width` × `screen.height`, the physical display size — not
+> stats (i.e. `screen.width` × `screen.height`, the physical display size), not
 > the browser viewport / window inner size (`window.innerWidth`). For most
 > fingerprinting use cases the screen resolution is exactly what you want.
 
