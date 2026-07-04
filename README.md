@@ -3,6 +3,13 @@
 </div>
 
 # fakewindowsize
+
+[![CI](https://github.com/carlosplanchon/fakewindowsize/actions/workflows/ci.yml/badge.svg)](https://github.com/carlosplanchon/fakewindowsize/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/fakewindowsize.svg)](https://pypi.org/project/fakewindowsize/)
+[![Python versions](https://img.shields.io/pypi/pyversions/fakewindowsize.svg)](https://pypi.org/project/fakewindowsize/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/carlosplanchon/fakewindowsize)
+
 *Python module to generate realistic screen resolutions.*
 
 Generate random but statistically accurate **screen resolutions** based on real-world usage data from [StatCounter](https://gs.statcounter.com/). Perfect for web scraping, testing, and generating realistic browser fingerprints.
@@ -11,9 +18,6 @@ Generate random but statistically accurate **screen resolutions** based on real-
 > stats — i.e. `screen.width` × `screen.height`, the physical display size — not
 > the browser viewport / window inner size (`window.innerWidth`). For most
 > fingerprinting use cases the screen resolution is exactly what you want.
-
-**DeepWiki** [https://deepwiki.com/carlosplanchon/fakewindowsize](https://deepwiki.com/carlosplanchon/fakewindowsize).
-
 
 ## Features
 
