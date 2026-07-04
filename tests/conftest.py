@@ -1,15 +1,20 @@
 """Pytest configuration and fixtures"""
 
 import pytest
+from datetime import date
 from pathlib import Path
 import tempfile
 import json
 
 
+# Year the library defaults to (previous, complete calendar year).
+DEFAULT_YEAR = date.today().year - 1
+
+
 @pytest.fixture
 def sample_csv_data():
     """Sample CSV data mimicking StatCounter response"""
-    return """Screen Resolution,Market Share Perc. (2025)
+    return f"""Screen Resolution,Market Share Perc. ({DEFAULT_YEAR})
 1920x1080,8.36
 360x800,6.71
 390x844,3.76

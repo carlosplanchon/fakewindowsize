@@ -3,19 +3,25 @@
 </div>
 
 # fakewindowsize
-*Python module to generate realistic browsers window size.*
+*Python module to generate realistic screen resolutions.*
 
-Generate random but statistically accurate browser window sizes based on real-world usage data from [StatCounter](https://gs.statcounter.com/). Perfect for web scraping, testing, and generating realistic browser fingerprints.
+Generate random but statistically accurate **screen resolutions** based on real-world usage data from [StatCounter](https://gs.statcounter.com/). Perfect for web scraping, testing, and generating realistic browser fingerprints.
+
+> **Note on terminology:** the data source is StatCounter's *screen resolution*
+> stats — i.e. `screen.width` × `screen.height`, the physical display size — not
+> the browser viewport / window inner size (`window.innerWidth`). For most
+> fingerprinting use cases the screen resolution is exactly what you want.
 
 **DeepWiki** [https://deepwiki.com/carlosplanchon/fakewindowsize](https://deepwiki.com/carlosplanchon/fakewindowsize).
 
 
 ## Features
 
-- 📊 **Real-world data**: Uses current browser resolution statistics from StatCounter (2025 data)
+- 📊 **Real-world data**: Uses screen resolution statistics from StatCounter (defaults to the previous, complete year)
 - 🎲 **Weighted random selection**: More common resolutions are more likely to be returned
-- 💾 **Smart caching**: Automatically caches data locally to minimize network requests
+- 💾 **Smart caching**: Caches data locally (with a TTL) to minimize network requests
 - 📱 **Multi-device support**: Includes desktop, tablet, and mobile resolutions
+- 🌍 **Configurable**: Choose the `year`, `region` and `device` mix
 - 🔒 **Proxy support**: Configure HTTP proxies for data fetching
 
 ## Installation
@@ -42,6 +48,21 @@ width, height = f.get_random_window_size()
 print(f"{width}x{height}")  # e.g., (1920, 1080)
 ```
 
+### Choosing year / region / device
+```python
+# US desktop resolutions from the 2024 dataset
+f = fakewindowsize.FakeWindowSize(year=2024, region="us", device="desktop")
+width, height = f.get_random_window_size()
+```
+
+- `year`: StatCounter yearly dataset (defaults to the previous calendar year, which is always complete).
+- `region`: StatCounter region code (`ww`, `us`, `eu`, ...).
+- `device`: `+`-joined device types (`desktop+tablet+mobile`, `desktop`, `mobile`, ...).
+- `cache_ttl_days`: how long the local cache stays fresh (default `30`; `None` to never expire).
+- `request_timeout`: seconds before an HTTP request times out (default `30`).
+
+Each parameter combination is cached in its own file, so different regions/years never clobber each other.
+
 ### With proxy support
 ```python
 f = fakewindowsize.FakeWindowSize()
@@ -57,9 +78,9 @@ data = f.scrape_window_size_dict(request_proxies=proxies)
 ## How it works
 
 1. Fetches screen resolution statistics from StatCounter's global database
-2. Converts market share percentages into cumulative distribution
+2. Converts market share percentages into a cumulative distribution
 3. Uses weighted random selection to pick resolutions based on real-world usage
-4. Caches data locally (`~/.fakescreensize.json`) to reduce API calls
+4. Caches data locally (`~/.fakewindowsize-<device>-<region>-<year>.json`) to reduce network requests
 5. Returns resolution as a tuple of (width, height)
 
 ## Data source

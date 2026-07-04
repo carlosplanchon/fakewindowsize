@@ -2,11 +2,15 @@
 
 import pytest
 import responses
+from datetime import date
 from pathlib import Path
-from fakewindowsize import FakeWindowSize
+from fakewindowsize import FakeWindowSize, build_statcounter_url
 
-# StatCounter URL used by the library
-STATCOUNTER_URL = "https://gs.statcounter.com/chart.php?device_hidden=desktop%2Btablet%2Bmobile&statType_hidden=resolution&region_hidden=ww&multi-device=true&csv=1&granularity=yearly&fromYear=2025&toYear=2025"
+# Year the library defaults to (previous, complete calendar year).
+DEFAULT_YEAR = date.today().year - 1
+
+# StatCounter URL used by the library (must match what the library builds).
+STATCOUNTER_URL = build_statcounter_url(DEFAULT_YEAR)
 
 
 class TestFakeWindowSizeInit:
@@ -21,9 +25,21 @@ class TestFakeWindowSizeInit:
         assert fws.scraped_dict is None
 
     def test_default_cache_path(self):
-        """Test that default cache path is in home directory"""
+        """Test that default cache path is in home directory and param-keyed"""
         fws = FakeWindowSize()
-        assert fws.default_json_fp == Path.home() / ".fakescreensize.json"
+        expected = Path.home() / f".fakewindowsize-desktop_tablet_mobile-ww-{DEFAULT_YEAR}.json"
+        assert fws.default_json_fp == expected
+
+    def test_cache_path_differs_by_params(self):
+        """Different region/device/year must not share a cache file"""
+        assert (
+            FakeWindowSize(region="us").default_json_fp
+            != FakeWindowSize(region="ww").default_json_fp
+        )
+        assert (
+            FakeWindowSize(year=2024).default_json_fp
+            != FakeWindowSize(year=2025).default_json_fp
+        )
 
 
 class TestScrapingMethods:
@@ -131,10 +147,15 @@ class TestRandomSelection:
     def test_default_width_x_height(self):
         """Test default fallback resolution"""
         fws = FakeWindowSize()
-        width, height = fws.default_width_x_heigth()
+        width, height = fws.default_width_x_height()
 
         assert width == 1366
         assert height == 768
+
+    def test_default_width_x_height_legacy_alias(self):
+        """The old (misspelled) method name still works for back-compat"""
+        fws = FakeWindowSize()
+        assert fws.default_width_x_heigth() == fws.default_width_x_height()
 
     def test_choice_random_window_size(self, expected_scraped_dict):
         """Test random selection from scraped data"""
@@ -277,3 +298,138 @@ class TestIntegration:
 
         # Verify only one HTTP call was made
         assert len(responses.calls) == 1
+
+
+class TestRobustness:
+    """Regression tests for edge cases found during review."""
+
+    @responses.activate
+    def test_malformed_resolution_rows_are_skipped(self, fws_with_temp_cache):
+        """Junk rows that merely contain 'x' must not become dict keys."""
+        csv = (
+            f"Screen Resolution,Market Share Perc. ({DEFAULT_YEAR})\n"
+            "1920x1080,8.36\n"
+            "12xABC,5.00\n"        # non-numeric height
+            "1920x1080x2,1.00\n"   # too many parts
+            "1234,1.00\n"          # no 'x'
+            "Other,80.00\n"
+        )
+        responses.add(responses.GET, STATCOUNTER_URL, body=csv, status=200)
+
+        result = fws_with_temp_cache.scrape_window_size_dict()
+        assert list(result.keys()) == ["1920x1080"]
+
+        # Selection over the parsed data must never raise (every key is WxH).
+        for _ in range(50):
+            width, height = fws_with_temp_cache.choice_random_window_size(result)
+            assert (width, height) == (1920, 1080)
+
+    def test_cache_path_cannot_escape_home(self):
+        """Odd region/device values must not inject a path separator."""
+        fws = FakeWindowSize(region="us/../etc", device="a/b")
+        assert fws.default_json_fp.parent == Path.home()
+
+    @responses.activate
+    def test_get_survives_unwritable_cache(self, sample_csv_data, monkeypatch):
+        """A cache write failure must not stop a valid size being returned."""
+        responses.add(responses.GET, STATCOUNTER_URL, body=sample_csv_data, status=200)
+
+        fws = FakeWindowSize()
+        monkeypatch.setattr(
+            fws, "default_json_fp", Path("/nonexistent_dir_xyz/cache.json")
+        )
+
+        result = fws.get_random_window_size()
+        assert result is not None
+        width, height = result
+        assert isinstance(width, int) and isinstance(height, int)
+
+    @responses.activate
+    def test_corrupt_cache_self_heals(self, sample_csv_data, fws_with_temp_cache):
+        """A torn/corrupt cache is treated as missing and rewritten."""
+        # Simulate a half-written cache from a concurrent process.
+        fws_with_temp_cache.default_json_fp.write_text('{"1920x1080": 8.36, "360')
+        assert fws_with_temp_cache.load_scraped_dict() is None
+
+        responses.add(responses.GET, STATCOUNTER_URL, body=sample_csv_data, status=200)
+        result = fws_with_temp_cache.get_random_window_size()
+        assert result is not None
+
+        # Cache is valid JSON again.
+        import json
+        json.loads(fws_with_temp_cache.default_json_fp.read_text())
+
+    def test_save_is_atomic_and_leaves_no_tmp(self, tmp_path, expected_scraped_dict):
+        """Atomic save must not leave temp files behind."""
+        fws = FakeWindowSize()
+        cache = tmp_path / "cache.json"
+        fws.save_scraped_dict(expected_scraped_dict, path=cache)
+        assert [p.name for p in tmp_path.iterdir()] == ["cache.json"]
+
+    def test_stale_cache_used_when_network_fails(
+        self, expected_scraped_dict, temp_cache_file, monkeypatch
+    ):
+        """When the cache is stale and the network is down, use the stale cache."""
+        fws = FakeWindowSize(cache_ttl_days=0)  # ttl=0 => any cache is stale
+        monkeypatch.setattr(fws, "default_json_fp", temp_cache_file)
+        fws.save_scraped_dict(expected_scraped_dict)
+
+        def boom(*args, **kwargs):
+            raise RuntimeError("network down")
+
+        monkeypatch.setattr(fws, "scrape_window_size_dict", boom)
+
+        result = fws.get_random_window_size()
+        assert result is not None
+        width, height = result
+        assert f"{width}x{height}" in expected_scraped_dict
+
+    def test_ttl_none_never_expires(
+        self, expected_scraped_dict, temp_cache_file, monkeypatch
+    ):
+        """cache_ttl_days=None uses the cache regardless of age (no scrape)."""
+        import os
+        import time
+
+        fws = FakeWindowSize(cache_ttl_days=None)
+        monkeypatch.setattr(fws, "default_json_fp", temp_cache_file)
+        fws.save_scraped_dict(expected_scraped_dict)
+
+        old = time.time() - 1000 * 86400  # backdate 1000 days
+        os.utime(temp_cache_file, (old, old))
+        assert fws._cache_is_fresh() is True
+
+        scraped = []
+        monkeypatch.setattr(
+            fws, "scrape_window_size_dict",
+            lambda *a, **k: scraped.append(1) or {},
+        )
+        result = fws.get_random_window_size()
+        assert result is not None
+        assert scraped == []  # cache used, scrape never called
+
+    def test_expired_cache_triggers_rescrape(
+        self, expected_scraped_dict, temp_cache_file, monkeypatch
+    ):
+        """An expired cache forces a re-scrape."""
+        import os
+        import time
+
+        fws = FakeWindowSize(cache_ttl_days=30)
+        monkeypatch.setattr(fws, "default_json_fp", temp_cache_file)
+        fws.save_scraped_dict(expected_scraped_dict)
+
+        old = time.time() - 1000 * 86400
+        os.utime(temp_cache_file, (old, old))
+        assert fws._cache_is_fresh() is False
+
+        scraped = []
+
+        def fake_scrape(*args, **kwargs):
+            scraped.append(1)
+            return dict(expected_scraped_dict)
+
+        monkeypatch.setattr(fws, "scrape_window_size_dict", fake_scrape)
+        result = fws.get_random_window_size()
+        assert result is not None
+        assert scraped == [1]  # stale cache -> re-scraped
