@@ -90,5 +90,3 @@ data = f.scrape_window_size_dict(request_proxies=proxies)
 ## Data source
 
 Screen resolution data is sourced from [StatCounter Global Stats](https://gs.statcounter.com/screen-resolution-stats), which tracks browser usage across desktop, tablet, and mobile devices worldwide.
-
-## Documentation

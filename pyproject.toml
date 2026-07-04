@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fakewindowsize"
-version = "0.8.1"
+version = "0.8.2"
 description = "Python module to generate realistic screen resolutions from real-world StatCounter data."
 readme = "README.md"
 
